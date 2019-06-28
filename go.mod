@@ -1,4 +1,4 @@
-module github.com/yix/telebot
+module gopkg.in/yix/telebot.v2
 
 go 1.11
 
