@@ -3,13 +3,11 @@ package telebot
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -19,7 +17,7 @@ import (
 
 // Raw lets you call any method of Bot API manually.
 func (b *Bot) Raw(method string, payload interface{}) ([]byte, error) {
-	url := fmt.Sprintf("%s/bot%s/%s", b.URL, b.Token, method)
+	url := b.URL + "/bot" + b.Token + "/" + method
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(payload); err != nil {
@@ -32,6 +30,7 @@ func (b *Bot) Raw(method string, payload interface{}) ([]byte, error) {
 	}
 	resp.Close = true
 	defer resp.Body.Close()
+
 	json, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return []byte{}, wrapSystem(err)
@@ -40,16 +39,11 @@ func (b *Bot) Raw(method string, payload interface{}) ([]byte, error) {
 	return json, nil
 }
 
-func addFileToWriter(writer *multipart.Writer, fieldName string, file interface{}) error {
-	var reader io.Reader
-	var part io.Writer
-	var err error
-	var filename string
+func addFileToWriter(writer *multipart.Writer,
+	filename, field string, file interface{}) error {
 
+	var reader io.Reader
 	if r, ok := file.(io.Reader); ok {
-		// Telegram requires fields to have a filename, otherwise
-		// `Bad Request: wrong URL host` would be returned
-		filename = "empty"
 		reader = r
 	} else if path, ok := file.(string); ok {
 		f, err := os.Open(path)
@@ -57,14 +51,12 @@ func addFileToWriter(writer *multipart.Writer, fieldName string, file interface{
 			return err
 		}
 		defer f.Close()
-
 		reader = f
-		filename = filepath.Base(path)
 	} else {
-		return errors.Errorf("File for field `%v` should be an io.ReadCloser or string", fieldName)
+		return errors.Errorf("File for field `%v` should be an io.ReadCloser or string", field)
 	}
 
-	part, err = writer.CreateFormFile(fieldName, filename)
+	part, err := writer.CreateFormFile(field, filename)
 	if err != nil {
 		return err
 	}
@@ -73,11 +65,9 @@ func addFileToWriter(writer *multipart.Writer, fieldName string, file interface{
 	return err
 }
 
-func (b *Bot) sendFiles(
-	method string,
-	files map[string]File,
+func (b *Bot) sendFiles(method string, files map[string]File,
 	params map[string]string) ([]byte, error) {
-	// ---
+
 	body := &bytes.Buffer{}
 	rawFiles := map[string]interface{}{}
 
@@ -103,7 +93,7 @@ func (b *Bot) sendFiles(
 	writer := multipart.NewWriter(body)
 
 	for field, file := range rawFiles {
-		if err := addFileToWriter(writer, field, file); err != nil {
+		if err := addFileToWriter(writer, params["file_name"], field, file); err != nil {
 			return nil, wrapSystem(err)
 		}
 	}
@@ -118,7 +108,7 @@ func (b *Bot) sendFiles(
 		return nil, wrapSystem(err)
 	}
 
-	url := fmt.Sprintf("%s/bot%s/%s", b.URL, b.Token, method)
+	url := b.URL + "/bot" + b.Token + "/" + method
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return nil, wrapSystem(err)
@@ -130,6 +120,7 @@ func (b *Bot) sendFiles(
 	if err != nil {
 		return nil, errors.Wrap(err, "http.Post failed")
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusInternalServerError {
 		return nil, errors.New("api error: internal server error")

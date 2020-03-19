@@ -27,6 +27,11 @@ type Callback struct {
 	Data string `json:"data"`
 }
 
+// IsInline says whether message is an inline message.
+func (c *Callback) IsInline() bool {
+	return c.MessageID != ""
+}
+
 // CallbackResponse builds a response to a Callback query.
 //
 // See also: https://core.telegram.org/bots/api#answerCallbackQuery
@@ -62,10 +67,11 @@ type InlineButton struct {
 	// It will be used as a callback endpoint.
 	Unique string `json:"unique,omitempty"`
 
-	Text        string `json:"text"`
-	URL         string `json:"url,omitempty"`
-	Data        string `json:"callback_data,omitempty"`
-	InlineQuery string `json:"switch_inline_query,omitempty"`
+	Text            string `json:"text"`
+	URL             string `json:"url,omitempty"`
+	Data            string `json:"callback_data,omitempty"`
+	InlineQuery     string `json:"switch_inline_query,omitempty"`
+	InlineQueryChat string `json:"switch_inline_query_current_chat"`
 
 	Action func(*Callback) `json:"-"`
 }

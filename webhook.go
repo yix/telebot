@@ -25,11 +25,11 @@ type WebhookEndpoint struct {
 }
 
 // A Webhook configures the poller for webhooks. It opens a port on the given
-// listen adress. If TLS is filled, the listener will use the key and cert to open
+// listen address. If TLS is filled, the listener will use the key and cert to open
 // a secure port. Otherwise it will use plain HTTP.
 // If you have a loadbalancer ore other infrastructure in front of your service, you
 // must fill the Endpoint structure so this poller will send this data to telegram. If
-// you leave these values empty, your local adress will be sent to telegram which is mostly
+// you leave these values empty, your local address will be sent to telegram which is mostly
 // not what you want (at least while developing). If you have a single instance of your
 // bot you should consider to use the LongPoller instead of a WebHook.
 // You can also leave the Listen field empty. In this case it is up to the caller to
@@ -73,13 +73,13 @@ func (h *Webhook) getFiles() map[string]File {
 func (h *Webhook) getParams() map[string]string {
 	param := make(map[string]string)
 	if h.TLS != nil {
-		param["url"] = fmt.Sprintf("https://%s", h.Listen)
+		param["url"] = "https://" + h.Listen
 	} else {
 		// this will not work with telegram, they want TLS
 		// but i allow this because telegram will send an error
 		// when you register this hook. in their docs they write
 		// that port 80/http is allowed ...
-		param["url"] = fmt.Sprintf("http://%s", h.Listen)
+		param["url"] = "http://" + h.Listen
 	}
 	if h.Endpoint != nil {
 		param["url"] = h.Endpoint.PublicURL
